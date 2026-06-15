@@ -147,6 +147,16 @@ For high-performance ingestion microservices, **FastAPI** is generally preferred
 
 Use these `curl` commands to interact with the API endpoints.
 
+> [!NOTE]
+> **Windows PowerShell Users**: 
+> In PowerShell, the `curl` command is an alias for `Invoke-WebRequest`, which does not support standard curl parameters (like `-X`, `-H`, or `-d`).
+> To run these commands on Windows, you can either:
+> 1. Use **`curl.exe`** on a single line (e.g. `curl.exe -X POST ...`).
+> 2. Use PowerShell's native **`Invoke-RestMethod`** command:
+>    ```powershell
+>    Invoke-RestMethod -Uri "http://localhost:8001/listings" -Method Post -Headers @{"Content-Type"="application/json"} -Body '{"raw_text": "للبيع أرض صناعية بالدمام المنطقة الصناعية الثانية، المساحة ١٢٥٠ متر، السعر ٢٫٨ مليون ريال قابل للتفاوض. للتواصل: ٠٥٥١٢٣٤٥٦٧"}'
+>    ```
+
 ### 1. Ingest Messy Listings (POST `/listings`)
 
 #### Listing 1 (Industrial Land - Inserts new row)
