@@ -50,7 +50,8 @@ class IngestListingView(APIView):
                     ).first()
                 
                 if existing:
-                    existing.price = extracted.price
+                    if extracted.price is not None:
+                        existing.price = extracted.price
                     existing.transaction_type = extracted.transaction_type
                     existing.raw_text = raw_text.strip()
                     existing.save()

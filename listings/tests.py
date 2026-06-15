@@ -222,3 +222,21 @@ class ListingIngestExtraTestCase(APITestCase):
         self.assertEqual(response_2.data["contact_phone"], "+966000000000")
         
         self.assertEqual(Listing.objects.filter(contact_phone="+966000000000").count(), 2)
+
+    def test_deduplicate_keeps_existing_price_when_new_price_is_none(self):
+        # 1. Ingest a listing with a price
+        raw_text_1 = "للبيع أرض بالدمام مساحة ١١٠٠ متر بسعر ٢ مليون ريال للتواصل 0559999999"
+        res1 = self.client.post(self.ingest_url, {"raw_text": raw_text_1}, format='json')
+        self.assertEqual(res1.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(res1.data["action"], "inserted")
+        self.assertEqual(Decimal(str(res1.data["price"])), Decimal("2000000.0"))
+        
+        # 2. Ingest duplicate listing with NO price
+        raw_text_2 = "أرض بالدمام مساحة ١١٠٠ متر للتواصل 0559999999"
+        res2 = self.client.post(self.ingest_url, {"raw_text": raw_text_2}, format='json')
+        self.assertEqual(res2.status_code, status.HTTP_200_OK)
+        self.assertEqual(res2.data["action"], "updated")
+        
+        # 3. Assert that the price in the DB did NOT get overwritten to None
+        listing = Listing.objects.get(id=res2.data["id"])
+        self.assertEqual(listing.price, Decimal("2000000.00"))
