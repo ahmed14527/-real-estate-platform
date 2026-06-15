@@ -15,51 +15,94 @@ A Django & Django REST Framework service that ingests messy free-text real estat
 
 ## How to Run the Service
 
-### Prerequisites
-- [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/)
-- A **Groq API Key** (optional, to run live LLM parsing). If you don't have one, the service automatically falls back to a **local rule-based mock extractor** that matches the sample listings and parses queries, allowing you to test everything end-to-end out-of-the-box.
+The service can be run using either **Docker Compose** (recommended, uses PostgreSQL) or **Locally** (uses a zero-configuration SQLite database by default).
 
-### Step 1: Environment Configuration
-Create a `.env` file in the root directory (or copy the existing one):
-```bash
-# In docker-compose, the database host is 'db'. Locally, it would be 'localhost'.
-DATABASE_URL=postgresql://postgres:postgres@db:5432/listings_db
+### Option 1: Run with Docker Compose (Recommended)
 
-# (Optional) Groq configuration
-GROQ_API_KEY=your_groq_api_key_here
-GROQ_MODEL=llama-3.3-70b-versatile
-```
+This runs the full environment including PostgreSQL. It is now configured to be **zero-config** (no `.env` file is required out-of-the-box).
 
-### Step 2: Build and Run with Docker Compose
-Run the following command in the project root to start the PostgreSQL database and the web service:
-```bash
-docker compose up --build
-```
+1. Start the services using Docker Compose:
+   ```bash
+   docker compose up --build
+   ```
+   *Note: If you have an older version of docker, run `docker-compose up --build` instead.*
+
 This command will:
-1. Spin up a PostgreSQL container and wait until it is healthy.
-2. Build the Django container.
-3. Automatically run database migrations.
-4. Launch the web server on `http://localhost:8001`.
+* Spin up a PostgreSQL container and wait until it is healthy.
+* Build the Django web container.
+* Automatically run database migrations.
+* Launch the web server on **`http://localhost:8001`**.
+
+2. *(Optional)* If you want to use a live **Groq API Key**:
+   * Create a `.env` file in the root directory:
+     ```env
+     GROQ_API_KEY=your_actual_groq_api_key_here
+     ```
+   * Or set it in your system/shell environment before running docker compose.
+
+---
+
+### Option 2: Run Locally (Without Docker)
+
+You can run the Django app directly on your host machine. By default, it will automatically fall back to a local **SQLite** database, meaning no database configuration or server installation is needed.
+
+1. **Install Python dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. **Apply Database Migrations** (creates `db.sqlite3` automatically):
+   ```bash
+   python manage.py migrate
+   ```
+3. **Run the Development Server**:
+   ```bash
+   python manage.py runserver
+   ```
+   The application will be available locally on **`http://127.0.0.1:8000`**.
+
+---
+
+## Troubleshooting & Common Issues
+
+### 1. Port 5432 is already allocated (Docker Compose)
+If you get an error like:
+`Bind for 0.0.0.0:5432 failed: port is already allocated`
+This means you have a local PostgreSQL instance already running on your machine.
+* **Solution 1 (Recommended)**: Change the port mapping of the database service in [docker-compose.yml](file:///d:/%20real-estate%20platform/docker-compose.yml#L12-L13) from `"5432:5432"` to `"5435:5432"`. Container-to-container communication will still work fine, but you won't conflict with your host's port.
+* **Solution 2**: Temporarily stop your local PostgreSQL server:
+  * On Windows (PowerShell Admin): `Stop-Service postgresql*` or stop it via Services (services.msc).
+  * On macOS: `brew services stop postgresql`
+  * On Linux: `sudo systemctl stop postgresql`
+
+### 2. Missing `.env` file error
+If Docker Compose complains that it cannot find `.env`, make sure you are using the updated `docker-compose.yml` in this repository, which removes the hard-coded `env_file: - .env` dependency.
+
+### 3. Local Run Database Connection Errors
+If you run `python manage.py runserver` and get a database connection failure:
+* Make sure your `.env` file does **not** have an active `DATABASE_URL` pointing to localhost if you don't have PostgreSQL running locally. 
+* By default, commenting out `DATABASE_URL` in your `.env` forces the project to use SQLite (`db.sqlite3`) which requires zero setup.
 
 ---
 
 ## How to Run Tests
 
 ### Running Tests Locally (Fastest)
-You can run the test suite locally using a temporary SQLite database without launching Docker. In PowerShell (Windows):
-```powershell
-$env:DATABASE_URL="sqlite:///db.sqlite3"; python manage.py test
-```
-In Bash (Linux/macOS):
-```bash
-DATABASE_URL="sqlite:///db.sqlite3" python manage.py test
-```
+You can run the test suite locally using a temporary SQLite database.
+* In Windows (PowerShell):
+  ```powershell
+  $env:DATABASE_URL="sqlite:///db.sqlite3"; python manage.py test
+  ```
+* In Linux/macOS (Bash):
+  ```bash
+  DATABASE_URL="sqlite:///db.sqlite3" python manage.py test
+  ```
 
 ### Running Tests Inside Docker
-To run tests inside the active Docker container:
+To run tests inside the active Docker web container:
 ```bash
 docker compose exec web python manage.py test
 ```
+
 
 ---
 
